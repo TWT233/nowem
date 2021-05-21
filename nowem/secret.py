@@ -1,12 +1,13 @@
 import base64
 import hashlib
+import logging
 import random
 import string
 from typing import Tuple
 
+import msgpack
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding
-import msgpack
 
 from .exception import PCRAPIException
 
@@ -95,6 +96,7 @@ class PCRSecret():
 
     def prepare_req(self, api: str, params: dict) -> Tuple[bytes, dict]:
         key = PCRSecret._random_key()
+        logging.getLogger(__name__).debug(f'generated key={key}')
 
         if 'SHORT-UDID' not in self.headers:
             self.headers['SHORT-UDID'] = self.enc_short_udid(self.short_udid)
@@ -114,6 +116,8 @@ class PCRSecret():
 
     async def handle_resp(self, resp) -> dict:
         response, key = self.unpack(await resp.content)
+        logging.getLogger(__name__).debug(f'raw response={response}')
+        logging.getLogger(__name__).debug(f'key={key}')
 
         data_headers = response['data_headers']
         data = response['data']

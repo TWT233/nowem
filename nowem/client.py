@@ -1,6 +1,7 @@
+import logging
+
 from .aiorequests import post
 from .playerprefs import dec_xml
-
 from .secret import PCRSecret
 
 _API_ROOT = 'https://api-pc.so-net.tw'
@@ -21,6 +22,8 @@ class PCRClient:
         short_udid = short_udid or dec_xml(playerprefs)['SHORT_UDID']
         viewer_id = viewer_id or dec_xml(playerprefs)['VIEWER_ID']
 
+        logging.getLogger(__name__).debug(f'udid={udid}, short_udid={short_udid}, viewer_id={viewer_id}')
+
         self.sec = PCRSecret(udid, short_udid, viewer_id)
         self.proxy = proxy or {}
 
@@ -28,10 +31,13 @@ class PCRClient:
         self.api_root = _API_ROOT
 
     async def req(self, api: str, params: dict):
+        logging.getLogger(__name__).debug(f'api={api}, params={params}')
         data, headers = self.sec.prepare_req(api, params)
+        logging.getLogger(__name__).debug(f'headers={headers}')
 
         resp = await post(self.api_root + api, data=data, headers=headers, timeout=5, proxies=self.proxy)
         res = await self.sec.handle_resp(resp)
+        logging.getLogger(__name__).debug(f'req result={res}')
 
         return res
 
