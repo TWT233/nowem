@@ -171,4 +171,14 @@ class _ReqProfile(_Req):
     @end_point
     def get_profile(self, uid: int):
         self.params = {'target_viewer_id': uid}
-        return self
+
+
+class _ReqPayment(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/payment'
+
+    @end_point
+    def item_list(self):
+        self.params = {}
