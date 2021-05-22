@@ -139,7 +139,7 @@ class _ReqLoad(_Req):
 
     @end_point
     def index(self):
-        self.params = {'carrier': 'Android'}
+        self.params = {'carrier': 'blackshark'}
 
 
 class _ReqClan(_Req):
