@@ -14,9 +14,12 @@ from .exception import PCRAPIException
 _SALT_MD5 = 'r!I@nt8e5i='
 
 _DEFAULT_HEADERS = {
+    # client
     'Accept-Encoding': 'gzip',
     'User-Agent': 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',
+    # entity
     'Content-Type': 'application/octet-stream',
+    # transport
     'Expect': '100-continue',
     # game related headers
     'APP-VER': '2.6.0',
@@ -31,18 +34,15 @@ _DEFAULT_HEADERS = {
     'IP-ADDRESS': '172.16.1.27',
     'KEYCHAIN': '',
     'LOCALE': 'Jpn',
-    # remider for 'PLATFORM':
-    #   2: tw-1 server
-    #   1: tw-2/3/4 server
     'PLATFORM': '2',
     'PLATFORM-OS-VERSION': 'Android OS 7.1.2 / API-25 (N2G48C/N975FXXU1ASGO)',
     'REGION-CODE': '',
     'RES-VER': '00017004',
-    'X-Unity-Version': '2018.4.21f1'
+    'X-Unity-Version': '2018.4.21f1',
 }
 
 
-class PCRSecret():
+class PCRSecret:
     def __init__(self, udid: str, short_udid: str, viewer_id: str):
         self.udid = udid
         self.short_udid = short_udid
