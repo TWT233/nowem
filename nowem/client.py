@@ -1,5 +1,6 @@
 import functools
 import logging
+import time
 
 from .aiorequests import post
 from .playerprefs import dec_xml
@@ -61,6 +62,21 @@ class PCRClient:
         await self.call.check().game_start().exec()
         self.game_data = await self.call.load().index().exec()
 
+    async def donate_equipment(self):
+        clan_id = (await self.call.clan().info().exec())['clan']['detail']['clan_id']
+        chats = await self.call.clan().chat_info_list(clan_id).exec()
+
+        equip_reqs = filter(lambda x: x['user_donation_num'] == 0 and x['donation_num'] <= 8, chats['equip_requests'])
+        chat_reqs = filter(lambda x: x['message_type'] == 2 and x['create_time'] > int(time.time()) - 28800,
+                           chats['clan_chat_message'])
+
+        for c in chat_reqs:
+            e = functools.reduce(lambda x, y: y if y['message_id'] == c['message_id'] else x, equip_reqs, {})
+            if not e:
+                continue
+            u = functools.reduce(lambda x, y: y if y['equip_id'] == e['equip_id'] else x, chats['user_equip_data'])
+            await self.call.equipment().donate(clan_id, c['message_id'], 2, u['equip_count']).exec()
+
     @property
     def call(self):
         return _ReqBase(self)
@@ -105,6 +121,9 @@ class _ReqBase(_Req):
 
     def payment(self):
         return _ReqPayment(self)
+
+    def equipment(self):
+        return _ReqEquipment(self)
 
 
 class _ReqCheck(_Req):
@@ -202,3 +221,17 @@ class _ReqQuest(_Req):
     @end_point
     def quest_skip(self, quest_id: int, random_count: int, current_ticket_num: int):
         self.params = {'quest_id': quest_id, 'random_count': random_count, 'current_ticket_num': current_ticket_num}
+
+
+class _ReqEquipment(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/equipment'
+
+    @end_point
+    def donate(self, clan_id: int, message_id: int, donation_num: int, current_equip_num: int):
+        self.params = {'clan_id': clan_id,
+                       'message_id': message_id,
+                       'donation_num': donation_num,
+                       'current_equip_num': current_equip_num}
