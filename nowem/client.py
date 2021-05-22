@@ -37,6 +37,9 @@ class PCRClient:
         self.server_id = server_id
         self.proxy = proxy or {}
 
+        # init when login()
+        self.game_data = None
+
         # TODO: adapt other servers
         self.api_root = _API_ROOT[server_id - 1]
 
@@ -56,7 +59,7 @@ class PCRClient:
     async def login(self):
         await self.call.check().check_agreement().exec()
         await self.call.check().game_start().exec()
-        await self.call.load().index().exec()
+        self.game_data = await self.call.load().index().exec()
 
     @property
     def call(self):
