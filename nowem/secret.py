@@ -116,8 +116,8 @@ class PCRSecret():
 
     async def handle_resp(self, resp) -> dict:
         response, key = self.unpack(await resp.content)
-        logging.getLogger(__name__).debug(f'raw response={response}')
-        logging.getLogger(__name__).debug(f'key={key}')
+        logging.getLogger(__name__).debug(f'raw_response = {response}')
+        logging.getLogger(__name__).debug(f'key = {key}')
 
         data_headers = response['data_headers']
         data = response['data']

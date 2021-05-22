@@ -1,4 +1,4 @@
 from .client import PCRClient
 from .exception import PCRAPIException
-from .logger import enable_debug, disable_debug
+from .logger import PCRLog
 from .secret import PCRSecret
