@@ -158,7 +158,10 @@ class _ReqLoad(_Req):
 
     @end_point
     def index(self):
+        # login
         self.params = {'carrier': 'blackshark'}
+        # return to home
+        # {'message_id': 1931, 'tips_id_list': [], 'is_first': 0, 'gold_history': 0}
 
 
 class _ReqClan(_Req):
