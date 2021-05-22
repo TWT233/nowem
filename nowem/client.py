@@ -188,3 +188,14 @@ class _ReqPayment(_Req):
         self.params = {'log_key': log_key or 'evInitializeFailed',
                        'log_message': log_message or 'Error checking for billing v3 support. (response: 3:Unknown IAB '
                                                      'Helper Error)'}
+
+
+class _ReqQuest(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/quest'
+
+    @end_point
+    def quest_skip(self, quest_id: int, random_count: int, current_ticket_num: int):
+        self.params = {'quest_id': quest_id, 'random_count': random_count, 'current_ticket_num': current_ticket_num}
