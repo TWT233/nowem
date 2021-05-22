@@ -153,11 +153,11 @@ class _ReqClan(_Req):
         self.params = {'clan_id': 0, 'get_user_equip': 1}
 
     @end_point
-    def chat_info_list(self, clan_id, count: int = 30, wait_interval: int = 3):
+    def chat_info_list(self, clan_id, count: int = 10, wait_interval: int = 3, search_date: str = '2099-12-31'):
         self.params = {
             'clan_id': clan_id,
             'start_message_id': 0,
-            'search_date': '2099-12-31',
+            'search_date': search_date,
             'direction': 1,
             'count': count,
             'wait_interval': wait_interval,
