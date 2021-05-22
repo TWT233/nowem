@@ -182,3 +182,9 @@ class _ReqPayment(_Req):
     @end_point
     def item_list(self):
         self.params = {}
+
+    @end_point
+    def send_log(self, log_key: str = None, log_message: str = None):
+        self.params = {'log_key': log_key or 'evInitializeFailed',
+                       'log_message': log_message or 'Error checking for billing v3 support. (response: 3:Unknown IAB '
+                                                     'Helper Error)'}
