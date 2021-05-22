@@ -4,7 +4,10 @@ from .aiorequests import post
 from .playerprefs import dec_xml
 from .secret import PCRSecret
 
-_API_ROOT = 'https://api-pc.so-net.tw'
+_API_ROOT = ['https://api-pc.so-net.tw',
+             'https://api2-pc.so-net.tw',
+             'https://api3-pc.so-net.tw',
+             'https://api4-pc.so-net.tw']
 
 
 class PCRClient:
@@ -16,6 +19,7 @@ class PCRClient:
                  udid: str = None,
                  short_udid: str = None,
                  viewer_id: str = None,
+                 server_id: int = None,
                  proxy: dict = None):
         if not playerprefs:
             if not udid or not short_udid or not viewer_id:
@@ -23,15 +27,17 @@ class PCRClient:
         udid = udid or dec_xml(playerprefs)['UDID']
         short_udid = short_udid or dec_xml(playerprefs)['SHORT_UDID']
         viewer_id = viewer_id or dec_xml(playerprefs)['VIEWER_ID']
+        server_id = server_id or int(dec_xml(playerprefs)['TW_SERVER_ID'])
 
-        self.logger.info(f'cert setup: viewer_id = {viewer_id}')
+        self.logger.info(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
         self.logger.debug(f'udid = {udid}, short_udid = {short_udid}')
 
         self.sec = PCRSecret(udid, short_udid, viewer_id)
+        self.server_id = server_id
         self.proxy = proxy or {}
 
         # TODO: adapt other servers
-        self.api_root = _API_ROOT
+        self.api_root = _API_ROOT[server_id - 1]
 
     async def req(self, api: str, params: dict):
         self.logger.info(f'exec request: api = {api}')
