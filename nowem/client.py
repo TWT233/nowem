@@ -1,3 +1,4 @@
+import functools
 import logging
 
 from .aiorequests import post
@@ -62,6 +63,16 @@ class PCRClient:
         return _ReqBase(self)
 
 
+def end_point(func):
+    @functools.wraps(func)
+    def dec(*args, **kwargs) -> _Req:
+        args[0].api += f'/{func.__name__}'
+        func(*args, **kwargs)
+        return args[0]
+
+    return dec
+
+
 class _Req:
     def __init__(self):
         self.client = None
@@ -89,6 +100,9 @@ class _ReqBase(_Req):
     def profile(self):
         return _ReqProfile(self)
 
+    def payment(self):
+        return _ReqPayment(self)
+
 
 class _ReqCheck(_Req):
     def __init__(self, r: _Req):
@@ -96,13 +110,12 @@ class _ReqCheck(_Req):
         self.client = r.client
         self.api = r.api + '/check'
 
-    def check_agreement(self) -> _Req:
-        self.api += '/check_agreement'
+    @end_point
+    def check_agreement(self):
         self.params = {}
-        return self
 
-    def game_start(self) -> _Req:
-        self.api += '/game_start'
+    @end_point
+    def game_start(self):
         self.params = {
             'app_type': 0,
             'campaign_data': '',
@@ -113,7 +126,6 @@ class _ReqCheck(_Req):
             'FOXYOROKOBINODANCE': 'dec925fa8e3d6af9310a4714e4362ff5',
             'FOXYOROKOBINOMAI': 'e0773a614b41a3b2e44cdfd063e59075'
         }
-        return self
 
 
 class _ReqLoad(_Req):
@@ -122,10 +134,9 @@ class _ReqLoad(_Req):
         self.client = r.client
         self.api = r.api + '/load'
 
-    def index(self) -> _Req:
-        self.api += '/index'
+    @end_point
+    def index(self):
         self.params = {'carrier': 'Android'}
-        return self
 
 
 class _ReqClan(_Req):
@@ -134,13 +145,12 @@ class _ReqClan(_Req):
         self.client = r.client
         self.api = r.api + '/clan'
 
-    def info(self) -> _Req:
-        self.api += '/info'
+    @end_point
+    def info(self):
         self.params = {'clan_id': 0, 'get_user_equip': 1}
-        return self
 
-    def chat_info_list(self, clan_id, count: int = 30, wait_interval: int = 3) -> _Req:
-        self.api += '/chat_info_list'
+    @end_point
+    def chat_info_list(self, clan_id, count: int = 30, wait_interval: int = 3):
         self.params = {
             'clan_id': clan_id,
             'start_message_id': 0,
@@ -150,7 +160,6 @@ class _ReqClan(_Req):
             'wait_interval': wait_interval,
             'update_message_ids': [],
         }
-        return self
 
 
 class _ReqProfile(_Req):
@@ -159,7 +168,7 @@ class _ReqProfile(_Req):
         self.client = r.client
         self.api = r.api + '/profile'
 
-    def get_profile(self, uid: int) -> _Req:
-        self.api += '/get_profile'
+    @end_point
+    def get_profile(self, uid: int):
         self.params = {'target_viewer_id': uid}
         return self
