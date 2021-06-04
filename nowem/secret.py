@@ -22,7 +22,7 @@ _DEFAULT_HEADERS = {
     # transport
     'Expect': '100-continue',
     # game related headers
-    'APP-VER': '2.6.0',
+    'APP-VER': '2.7.0',
     'BATTLE-LOGIC-VERSION': '4',
     'BUNDLE-VER': '',
     # device related headers
