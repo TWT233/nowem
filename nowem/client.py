@@ -42,7 +42,6 @@ class PCRClient:
         # init when login()
         self.game_data = None
 
-        # TODO: adapt other servers
         self.api_root = _API_ROOT[server_id - 1]
 
     async def req(self, api: str, params: dict):
