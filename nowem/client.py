@@ -2,6 +2,7 @@ import functools
 import logging
 import time
 
+from nowem import PCRAPIException
 from .aiorequests import post
 from .playerprefs import dec_xml
 from .secret import PCRSecret
@@ -51,7 +52,14 @@ class PCRClient:
         self.logger.debug(f'headers = {headers}')
 
         resp = await post(self.api_root + api, data=data, headers=headers, timeout=5, proxies=self.proxy)
-        res = await self.sec.handle_resp(resp)
+        try:
+            res = await self.sec.handle_resp(resp)
+        except PCRAPIException as e:
+            self.logger.error(f'PCRAPIException: [{e.result_code}]{e.status} {e.message}')
+            await self.login()
+            self.logger.error(f're login')
+            raise e
+
         self.logger.info(f'request success: api = {api}')
         self.logger.debug(f'request result = {res}')
 
@@ -113,6 +121,9 @@ class _ReqBase(_Req):
     def load(self):
         return _ReqLoad(self)
 
+    def home(self):
+        return _ReqHome(self)
+
     def clan(self):
         return _ReqClan(self)
 
@@ -162,6 +173,17 @@ class _ReqLoad(_Req):
         self.params = {'carrier': 'blackshark'}
         # return to home
         # {'message_id': 1931, 'tips_id_list': [], 'is_first': 0, 'gold_history': 0}
+
+
+class _ReqHome(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/load'
+
+    @end_point
+    def index(self, is_first: bool):
+        self.params = {'message_id': 1931, 'tips_id_list': [], 'is_first': 1 if is_first else 0, 'gold_history': 0}
 
 
 class _ReqClan(_Req):
