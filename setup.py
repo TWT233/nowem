@@ -8,7 +8,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="nowem",
-    version="0.0.4",
+    version="0.0.5",
     author="TWT233",
     author_email="TWT2333@outlook.com",
     description="API wrapper for princess connect re:dive(tw server)",
