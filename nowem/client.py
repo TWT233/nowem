@@ -2,8 +2,8 @@ import functools
 import logging
 import time
 
-from nowem import PCRAPIException
 from .aiorequests import post
+from .exception import PCRAPIException
 from .playerprefs import dec_xml
 from .secret import PCRSecret
 
