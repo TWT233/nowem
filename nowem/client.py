@@ -182,7 +182,7 @@ class _ReqHome(_Req):
     def __init__(self, r: _Req):
         super().__init__()
         self.client = r.client
-        self.api = r.api + '/load'
+        self.api = r.api + '/home'
 
     @end_point
     def index(self, is_first: bool):
