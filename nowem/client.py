@@ -24,13 +24,17 @@ class PCRClient:
                  viewer_id: str = None,
                  server_id: int = None,
                  proxy: dict = None):
+        # check arguments
         if not playerprefs:
             if not udid or not short_udid or not viewer_id:
                 raise Exception('missing playerprefs and ids')
+
         udid = udid or dec_xml(playerprefs)['UDID']
         short_udid = short_udid or dec_xml(playerprefs)['SHORT_UDID']
         viewer_id = viewer_id or dec_xml(playerprefs)['VIEWER_ID']
         server_id = server_id or int(dec_xml(playerprefs)['TW_SERVER_ID'])
+        if server_id > 4 or server_id < 1:
+            raise ValueError('unacceptable server id, accept: (0,4]')
 
         self.logger.info(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
         self.logger.debug(f'udid = {udid}, short_udid = {short_udid}')
