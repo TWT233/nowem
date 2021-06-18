@@ -126,7 +126,7 @@ class PCRSecret:
             data = data['server_error']
             raise PCRAPIException(data['message'], data['status'], data_headers['result_code'])
 
-        if 'viewer_id' in data_headers:
+        if 'viewer_id' in data_headers and data_headers['viewer_id']:
             self.viewer_id = str(data_headers['viewer_id'])
 
         if 'required_res_ver' in data_headers:
