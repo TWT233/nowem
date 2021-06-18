@@ -36,7 +36,7 @@ class PCRClient:
         if server_id > 4 or server_id < 1:
             raise ValueError('unacceptable server id, accept: (0,4]')
 
-        self.logger.info(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
+        self.logger.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
         self.logger.debug(f'udid = {udid}, short_udid = {short_udid}')
 
         self.sec = PCRSecret(udid, short_udid, viewer_id)
@@ -49,7 +49,7 @@ class PCRClient:
         self.api_root = _API_ROOT[server_id - 1]
 
     async def req(self, api: str, params: dict):
-        self.logger.info(f'exec request: api = {api}')
+        self.logger.debug(f'exec request: api = {api}')
         self.logger.debug(f'params = {params}')
         data, headers = self.sec.prepare_req(api, params)
         self.logger.debug(f'headers = {headers}')
@@ -63,7 +63,7 @@ class PCRClient:
             self.logger.error(f're login')
             raise e
 
-        self.logger.info(f'request success: api = {api}')
+        self.logger.debug(f'request success: api = {api}')
         self.logger.debug(f'request result = {res}')
 
         return res
