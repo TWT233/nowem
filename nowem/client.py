@@ -171,6 +171,25 @@ class _ReqBase(_Req):
     def story(self):
         return _ReqStory(self)
 
+    @property
+    def present(self):
+        return _ReqPresent(self)
+
+
+class _ReqPresent(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/present'
+
+    @end_point
+    def index(self):
+        self.params = {'time_filter': -1, 'type_filter': 0, 'desc_flag': True, 'offset': 0}
+
+    @end_point
+    def receive_all(self):
+        self.params = {'time_filter': -1, 'type_filter': 0, 'desc_flag': True}
+
 
 class _ReqStory(_Req):
     def __init__(self, r: _Req):
@@ -210,20 +229,30 @@ class _ReqEvent(_Req):
         @end_point
         def gacha_exec(self, event_id: int, gacha_times: int, current_cost_num: int):
             self.params = {'event_id': event_id, 'gacha_id': event_id,
-                           'gacha_times': 10, 'current_cost_num': 10, 'loop_box_multi_gacha_flag': 0}
+                           'gacha_times': gacha_times, 'current_cost_num': current_cost_num,
+                           'loop_box_multi_gacha_flag': 0}
 
         @end_point
         def quest_top(self, event_id: int):
             self.params = {'event_id': event_id}
 
         @end_point
+        def boss_battle_start(self, event_id: int, boss_id: int, current_ticket_num: int):
+            self.params = {'event_id': event_id, 'boss_id': boss_id, 'current_ticket_num': current_ticket_num}
+
+        # @end_point
+        # def boss_battle_finish(self, event_id: int, boss_id: int):
+        #     self.params = {'event_id': event_id, 'boss_id': boss_id}
+        # complex, pass
+
+        @end_point
         def quest_start(self, event_id: int, quest_id: int, owner_viewer_id: int = 0, support_unit_id: int = 0,
                         support_battle_rarity: int = 0, is_friend: bool = False):
             # quest_id = 11000000 + chap_n * 1000 + map_n (normal)
             # quest_id = 12000000 + chap_n * 1000 + map_n (hard)
-            self.params = {'event_id': event_id,
-                           'quest_id': quest_id,
-                           'token': ''.join(random.choices(string.digits, k=16)),
+            self.params = {'event_id': int(event_id),
+                           'quest_id': int(quest_id),
+                           'token': self.client.token,
                            'owner_viewer_id': owner_viewer_id,
                            'support_unit_id': support_unit_id,
                            'support_battle_rarity': support_battle_rarity,
