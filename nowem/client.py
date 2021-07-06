@@ -1,9 +1,11 @@
 import functools
 import logging
+import random
+import string
 import time
+from typing import Union
 
 from .aiorequests import post
-from .exception import PCRAPIException
 from .playerprefs import dec_xml
 from .secret import PCRSecret
 
@@ -12,9 +14,10 @@ _API_ROOT = ['https://api-pc.so-net.tw',
              'https://api3-pc.so-net.tw',
              'https://api4-pc.so-net.tw']
 
+log = logging.getLogger(__name__)
+
 
 class PCRClient:
-    logger = logging.getLogger(__name__)
 
     def __init__(self,
                  *,
@@ -36,8 +39,8 @@ class PCRClient:
         if server_id > 4 or server_id < 1:
             raise ValueError('unacceptable server id, accept: (0,4]')
 
-        self.logger.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
-        self.logger.debug(f'udid = {udid}, short_udid = {short_udid}')
+        log.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
+        log.debug(f'udid = {udid}, short_udid = {short_udid}')
 
         self.sec = PCRSecret(udid, short_udid, viewer_id)
         self.server_id = server_id
@@ -45,37 +48,31 @@ class PCRClient:
 
         # init when login()
         self.game_data = None
+        self.token = ''.join(random.choices(string.digits, k=16))
 
         self.api_root = _API_ROOT[server_id - 1]
 
-    async def req(self, api: str, params: dict):
-        self.logger.debug(f'exec request: api = {api}')
-        self.logger.debug(f'params = {params}')
+    async def req(self, api: str, params: dict, no_headers=True):
+        log.debug(f'exec request: api = {api}')
+        log.debug(f'params = {params}')
         data, headers = self.sec.prepare_req(api, params)
-        self.logger.debug(f'headers = {headers}')
+        log.debug(f'headers = {headers}')
 
         resp = await post(self.api_root + api, data=data, headers=headers, timeout=5, proxies=self.proxy)
-        try:
-            res = await self.sec.handle_resp(resp)
-        except PCRAPIException as e:
-            self.logger.error(f'PCRAPIException: [{e.result_code}]{e.status} {e.message}')
-            await self.login()
-            self.logger.error(f're login')
-            raise e
-
-        self.logger.debug(f'request success: api = {api}')
-        self.logger.debug(f'request result = {res}')
-
+        res = await self.sec.handle_resp(resp, no_headers)
+        log.debug(f'request success: api = {api}')
+        log.debug(f'request result = {res}')
         return res
 
     async def login(self):
-        await self.call.check().check_agreement().exec()
-        await self.call.check().game_start().exec()
-        self.game_data = await self.call.load().index().exec()
+        await self.call.check.check_agreement().exec()
+        await self.call.check.game_start().exec()
+        self.game_data = await self.call.load.index().exec()
+        self.token = ''.join(random.choices(string.digits, k=16))
 
     async def donate_equipment(self):
-        clan_id = (await self.call.clan().info().exec())['clan']['detail']['clan_id']
-        chats = await self.call.clan().chat_info_list(clan_id).exec()
+        clan_id = (await self.call.clan.info().exec())['clan']['detail']['clan_id']
+        chats = await self.call.clan.chat_info_list(clan_id).exec()
 
         equip_reqs = filter(lambda x: x['user_donation_num'] == 0 and x['donation_num'] <= 8, chats['equip_requests'])
         chat_reqs = filter(lambda x: x['message_type'] == 2 and x['create_time'] > int(time.time()) - 28800,
@@ -86,7 +83,7 @@ class PCRClient:
             if not e:
                 continue
             u = functools.reduce(lambda x, y: y if y['equip_id'] == e['equip_id'] else x, chats['user_equip_data'])
-            await self.call.equipment().donate(clan_id, c['message_id'], 2, u['equip_count']).exec()
+            await self.call.equipment.donate(clan_id, c['message_id'], 2, u['equip_count']).exec()
 
     @property
     def call(self):
@@ -105,12 +102,12 @@ def end_point(func):
 
 class _Req:
     def __init__(self):
-        self.client = None
+        self.client: Union[PCRClient, None] = None
         self.api = ''
         self.params = {}
 
-    async def exec(self) -> dict:
-        return await self.client.req(self.api, self.params)
+    async def exec(self, no_headers=True) -> dict:
+        return await self.client.req(self.api, self.params, no_headers)
 
 
 class _ReqBase(_Req):
@@ -118,26 +115,181 @@ class _ReqBase(_Req):
         super().__init__()
         self.client = c
 
+    @property
     def check(self):
         return _ReqCheck(self)
 
+    @property
     def load(self):
         return _ReqLoad(self)
 
+    @property
     def home(self):
         return _ReqHome(self)
 
+    @property
     def clan(self):
         return _ReqClan(self)
 
+    @property
     def profile(self):
         return _ReqProfile(self)
 
+    @property
     def payment(self):
         return _ReqPayment(self)
 
+    @property
     def equipment(self):
         return _ReqEquipment(self)
+
+    @property
+    def tutorial(self):
+        return _ReqTutorial(self)
+
+    @property
+    def quest(self):
+        return _ReqQuest(self)
+
+    @property
+    def shop(self):
+        return _ReqShop(self)
+
+    @property
+    def mission(self):
+        return _ReqMission(self)
+
+    @property
+    def room(self):
+        return _ReqRoom(self)
+
+    @property
+    def event(self):
+        return _ReqEvent(self)
+
+    @property
+    def story(self):
+        return _ReqStory(self)
+
+
+class _ReqStory(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/story'
+
+    @end_point
+    def check(self, story_id: int):
+        self.params = {'story_id': story_id}
+
+    @end_point
+    def start(self, story_id: int):
+        self.params = {'story_id': story_id}
+
+
+class _ReqEvent(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/event'
+
+    class _Hatsune(_Req):
+        def __init__(self, r: _Req):
+            super().__init__()
+            self.client = r.client
+            self.api = r.api + '/hatsune'
+
+        @end_point
+        def top(self, event_id: int):
+            self.params = {'event_id': event_id}
+
+        @end_point
+        def gacha_index(self, event_id: int):
+            self.params = {'event_id': event_id, 'gacha_id': event_id}
+
+        @end_point
+        def gacha_exec(self, event_id: int, gacha_times: int, current_cost_num: int):
+            self.params = {'event_id': event_id, 'gacha_id': event_id,
+                           'gacha_times': 10, 'current_cost_num': 10, 'loop_box_multi_gacha_flag': 0}
+
+        @end_point
+        def quest_top(self, event_id: int):
+            self.params = {'event_id': event_id}
+
+        @end_point
+        def quest_start(self, event_id: int, quest_id: int, owner_viewer_id: int = 0, support_unit_id: int = 0,
+                        support_battle_rarity: int = 0, is_friend: bool = False):
+            # quest_id = 11000000 + chap_n * 1000 + map_n (normal)
+            # quest_id = 12000000 + chap_n * 1000 + map_n (hard)
+            self.params = {'event_id': event_id,
+                           'quest_id': quest_id,
+                           'token': ''.join(random.choices(string.digits, k=16)),
+                           'owner_viewer_id': owner_viewer_id,
+                           'support_unit_id': support_unit_id,
+                           'support_battle_rarity': support_battle_rarity,
+                           'is_friend': 1 if is_friend else 0}
+
+        @end_point
+        def quest_finish(self, event_id: int, quest_start_result: dict, auto_clear: bool = False,
+                         owner_viewer_id: int = 0,
+                         support_position: int = 0,
+                         is_friend: bool = False):
+            self.params = {'event_id': event_id, 'quest_id': quest_start_result['quest_id'],
+                           'remain_time': 73479,
+                           'unit_hp_list': [],
+                           'auto_clear': 1 if auto_clear else 0, 'fps': 60,
+                           'owner_viewer_id': owner_viewer_id, 'support_position': support_position,
+                           'is_friend': 1 if is_friend else 0}
+            for i in quest_start_result['skin_data_for_request']:
+                self.params['unit_hp_list'].append(
+                    {'viewer_id': self.client.sec.viewer_id, 'unit_id': i['unit_id'], 'hp': 100})
+            for i in quest_start_result['quest_wave_info'][2]['enemy_info_list']:
+                self.params['unit_hp_list'].append({'viewer_id': 0, 'unit_id': i['enemy_id'], 'hp': 0})
+
+    @property
+    def hatsune(self):
+        return _ReqEvent._Hatsune(self)
+
+
+class _ReqRoom(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/room'
+
+    @end_point
+    def start(self):
+        self.params = {}
+
+    @end_point
+    def receive_all(self):
+        self.params = {}
+
+    @end_point
+    def level_up_start(self, serial_id: int, floor_number: int = 1):
+        # 5:stamina 6:exp 7:mana
+        self.params = {'floor_number': floor_number, 'serial_id': serial_id}
+
+
+class _ReqMission(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/mission'
+
+    @end_point
+    def index(self):
+        self.params = {'request_flag': {'quest_clear_rank': 0}}
+
+    @end_point
+    def accept(self, type: int, id: int = 0, buy_id: int = 0):
+        # type:
+        #   1: daily
+        #   2: normal
+        #   4: medal
+        # id:
+        #   0: all
+        self.params = {'type': type, 'id': id, 'buy_id': buy_id}
 
 
 class _ReqCheck(_Req):
@@ -172,10 +324,18 @@ class _ReqLoad(_Req):
 
     @end_point
     def index(self):
-        # login
         self.params = {'carrier': 'blackshark'}
-        # return to home
-        # {'message_id': 1931, 'tips_id_list': [], 'is_first': 0, 'gold_history': 0}
+
+
+class _ReqTutorial(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/tutorial'
+
+    @end_point
+    def update_step(self, step: int, skip: int, user_name: str = ''):
+        self.params = {'step': step, 'skip': skip, 'user_name': user_name}
 
 
 class _ReqHome(_Req):
@@ -185,8 +345,11 @@ class _ReqHome(_Req):
         self.api = r.api + '/home'
 
     @end_point
-    def index(self, is_first: bool):
-        self.params = {'message_id': 1931, 'tips_id_list': [], 'is_first': 1 if is_first else 0, 'gold_history': 0}
+    def index(self, message_id: int, is_first: bool):
+        self.params = {'message_id': message_id,
+                       'tips_id_list': [],
+                       'is_first': 1 if is_first else 0,
+                       'gold_history': 0}
 
 
 class _ReqClan(_Req):
@@ -210,6 +373,20 @@ class _ReqClan(_Req):
             'wait_interval': wait_interval,
             'update_message_ids': [],
         }
+
+
+class _ReqShop(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/shop'
+
+    @end_point
+    def recover_stamina(self):
+        jewel = self.client.game_data['user_jewel']['free_jewel'] + self.client.game_data['user_jewel']['paid_jewel']
+        if jewel < 100:
+            log.warning(f'low jewel:{jewel}')
+        self.params = {'current_currency_num': jewel}
 
 
 class _ReqProfile(_Req):
@@ -249,6 +426,33 @@ class _ReqQuest(_Req):
     @end_point
     def quest_skip(self, quest_id: int, random_count: int, current_ticket_num: int):
         self.params = {'quest_id': quest_id, 'random_count': random_count, 'current_ticket_num': current_ticket_num}
+
+    @end_point
+    def start(self, quest_id: int, owner_viewer_id: int = 0, support_unit_id: int = 0,
+              support_battle_rarity: int = 0, is_friend: bool = False):
+        # quest_id = 11000000 + chap_n * 1000 + map_n (normal)
+        # quest_id = 12000000 + chap_n * 1000 + map_n (hard)
+        self.params = {'quest_id': quest_id,
+                       'token': ''.join(random.choices(string.digits, k=16)),
+                       'owner_viewer_id': owner_viewer_id,
+                       'support_unit_id': support_unit_id,
+                       'support_battle_rarity': support_battle_rarity,
+                       'is_friend': 1 if is_friend else 0}
+
+    @end_point
+    def finish(self, quest_start_result: dict, auto_clear: bool = False, owner_viewer_id: int = 0,
+               support_position: int = 0,
+               is_friend: bool = False):
+        self.params = {'quest_id': quest_start_result['quest_id'], 'remain_time': 73479,
+                       'unit_hp_list': [],
+                       'auto_clear': 1 if auto_clear else 0, 'fps': 60,
+                       'owner_viewer_id': owner_viewer_id, 'support_position': support_position,
+                       'is_friend': 1 if is_friend else 0}
+        for i in quest_start_result['skin_data_for_request']:
+            self.params['unit_hp_list'].append(
+                {'viewer_id': self.client.sec.viewer_id, 'unit_id': i['unit_id'], 'hp': 100})
+        for i in quest_start_result['quest_wave_info'][2]['enemy_info_list']:
+            self.params['unit_hp_list'].append({'viewer_id': 0, 'unit_id': i['enemy_id'], 'hp': 0})
 
 
 class _ReqEquipment(_Req):

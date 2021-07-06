@@ -41,6 +41,8 @@ _DEFAULT_HEADERS = {
     'X-Unity-Version': '2018.4.21f1',
 }
 
+log = logging.getLogger(__name__)
+
 
 class PCRSecret:
     def __init__(self, udid: str, short_udid: str, viewer_id: str):
@@ -63,6 +65,7 @@ class PCRSecret:
     def _random_key() -> bytes:
         return bytes(random.choices(b'0123456789abcdef', k=32))
 
+    @property
     def _udid_iv(self) -> bytes:
         return self.udid.replace('-', '')[:16].encode('utf8')
 
@@ -75,28 +78,28 @@ class PCRSecret:
         return f'{len(su):0>4x}' + ''.join([f'__{chr(ord(i) + 10)}_' for i in su]) + PCRSecret._random_iv()
 
     def encrypt(self, s: str, key: bytes) -> bytes:
-        aes = AES.new(key, AES.MODE_CBC, self._udid_iv())
+        aes = AES.new(key, AES.MODE_CBC, self._udid_iv)
         return aes.encrypt(Padding.pad(s.encode('utf8'), 16)) + key
 
     def decrypt(self, data: bytes) -> Tuple[bytes, bytes]:
         data = base64.b64decode(data.decode('utf8'))
-        aes = AES.new(data[-32:], AES.MODE_CBC, self._udid_iv())
+        aes = AES.new(data[-32:], AES.MODE_CBC, self._udid_iv)
         return aes.decrypt(data[:-32]), data[-32:]
 
     def pack(self, obj: dict, key: bytes) -> Tuple[bytes, bytes]:
-        aes = AES.new(key, AES.MODE_CBC, self._udid_iv())
+        aes = AES.new(key, AES.MODE_CBC, self._udid_iv)
         packed = msgpack.packb(obj, use_bin_type=False)
         return packed, aes.encrypt(Padding.pad(packed, 16)) + key
 
     def unpack(self, data: bytes) -> Tuple[dict, bytes]:
         data = base64.b64decode(data.decode('utf8'))
-        aes = AES.new(data[-32:], AES.MODE_CBC, self._udid_iv())
+        aes = AES.new(data[-32:], AES.MODE_CBC, self._udid_iv)
         dec = Padding.unpad(aes.decrypt(data[:-32]), 16)
         return msgpack.unpackb(dec, strict_map_key=False), data[-32:]
 
     def prepare_req(self, api: str, params: dict) -> Tuple[bytes, dict]:
         key = PCRSecret._random_key()
-        logging.getLogger(__name__).debug(f'generated key={key}')
+        log.debug(f'generated key={key}')
 
         if 'SHORT-UDID' not in self.headers:
             self.headers['SHORT-UDID'] = self.enc_short_udid(self.short_udid)
@@ -114,22 +117,24 @@ class PCRSecret:
 
         return crypted, self.headers
 
-    async def handle_resp(self, resp) -> dict:
+    async def handle_resp(self, resp, no_headers=True) -> dict:
         response, key = self.unpack(await resp.content)
-        logging.getLogger(__name__).debug(f'raw_response = {response}')
-        logging.getLogger(__name__).debug(f'key = {key}')
+        log.debug(f'raw_response = {response}')
+        log.debug(f'key = {key}')
 
-        data_headers = response['data_headers']
-        data = response['data']
+        headers = response['data_headers']
+        body = response['data']
 
-        if 'server_error' in data:
-            data = data['server_error']
-            raise PCRAPIException(data['message'], data['status'], data_headers['result_code'])
+        if 'server_error' in body:
+            body = body['server_error']
+            log.error(headers)
+            log.error(body)
+            raise PCRAPIException(body['message'], body['status'], headers['result_code'])
 
-        if 'viewer_id' in data_headers and data_headers['viewer_id']:
-            self.viewer_id = str(data_headers['viewer_id'])
+        if 'viewer_id' in headers and headers['viewer_id']:
+            self.viewer_id = str(headers['viewer_id'])
 
-        if 'required_res_ver' in data_headers:
-            self.headers['RES-VER'] = data_headers['required_res_ver']
+        if 'required_res_ver' in headers:
+            self.headers['RES-VER'] = headers['required_res_ver']
 
-        return data
+        return body if no_headers else response
