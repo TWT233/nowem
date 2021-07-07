@@ -1,11 +1,13 @@
+import asyncio
 import functools
 import logging
 import random
 import string
 import time
+import uuid
 from typing import Union
 
-from .aiorequests import post
+from .aiorequests import post, get
 from .playerprefs import dec_xml
 from .secret import PCRSecret
 
@@ -21,26 +23,28 @@ class PCRClient:
 
     def __init__(self,
                  *,
-                 playerprefs: str = None,
-                 udid: str = None,
-                 short_udid: str = None,
-                 viewer_id: str = None,
-                 server_id: int = None,
+                 playerprefs: str = '',
+                 udid: str = '',
+                 short_udid: str = '',
+                 viewer_id: str = '',
+                 server_id: int = 0,
                  proxy: dict = None):
         # check arguments
-        if not playerprefs:
+        if playerprefs:
+            pp_xml = dec_xml(playerprefs)
+            udid = udid or pp_xml['UDID']
+            short_udid = short_udid or pp_xml['SHORT_UDID']
+            viewer_id = viewer_id or pp_xml['VIEWER_ID']
+            server_id = server_id or int(pp_xml['TW_SERVER_ID'])
+        else:
             if not udid or not short_udid or not viewer_id:
-                raise Exception('missing playerprefs and ids')
+                log.warning('missing pp and args')
 
-        udid = udid or dec_xml(playerprefs)['UDID']
-        short_udid = short_udid or dec_xml(playerprefs)['SHORT_UDID']
-        viewer_id = viewer_id or dec_xml(playerprefs)['VIEWER_ID']
-        server_id = server_id or int(dec_xml(playerprefs)['TW_SERVER_ID'])
         if server_id > 4 or server_id < 1:
             raise ValueError('unacceptable server id, accept: (0,4]')
 
-        log.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}')
-        log.debug(f'udid = {udid}, short_udid = {short_udid}')
+        log.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}, short_udid = {short_udid}')
+        log.debug(f'udid = {udid}')
 
         self.sec = PCRSecret(udid, short_udid, viewer_id)
         self.server_id = server_id
@@ -52,11 +56,30 @@ class PCRClient:
 
         self.api_root = _API_ROOT[server_id - 1]
 
+    async def register(self, udid=str(uuid.uuid1())):
+        log.warning(f'registering now, udid={udid}')
+
+        self.sec = PCRSecret(udid, '0', '0')
+        await self.call.tool.check_agreement().exec()
+
+        gh = {'Upgrade-Insecure-Requests': '1',
+              'User-Agent': 'Mozilla/5.0 (Linux; Android 7.1.2; HD1900 Build/N2G48C; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/68.0.3440.70 Mobile Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Encoding': 'gzip, deflate',
+              'Accept-Language': 'zh-CN,en-US;q=0.9',
+              'X-Requested-With': 'tw.sonet.princessconnect'}
+
+        await get(self.api_root + '/agreement/first_view/1002/2001', headers=gh,
+                  proxies=self.proxy)
+
+        r = (await self.call.tool.signup().exec(no_headers=False))['data_headers']
+
+        self.sec = PCRSecret(r['udid'], r['short_udid'], r['viewer_id'])
+        log.info(f"{r['viewer_id']} {r['short_udid']} {r['udid']}")
+
     async def req(self, api: str, params: dict, no_headers=True):
         log.debug(f'exec request: api = {api}')
-        log.debug(f'params = {params}')
         data, headers = self.sec.prepare_req(api, params)
-        log.debug(f'headers = {headers}')
 
         resp = await post(self.api_root + api, data=data, headers=headers, timeout=5, proxies=self.proxy)
         res = await self.sec.handle_resp(resp, no_headers)
@@ -106,8 +129,10 @@ class _Req:
         self.api = ''
         self.params = {}
 
-    async def exec(self, no_headers=True) -> dict:
-        return await self.client.req(self.api, self.params, no_headers)
+    async def exec(self, latency=0, no_headers=True) -> dict:
+        res = await self.client.req(self.api, self.params, no_headers)
+        await asyncio.sleep(latency)
+        return res
 
 
 class _ReqBase(_Req):
@@ -174,6 +199,40 @@ class _ReqBase(_Req):
     @property
     def present(self):
         return _ReqPresent(self)
+
+    @property
+    def account(self):
+        return _ReqAccount(self)
+
+    @property
+    def tool(self):
+        return _ReqTool(self)
+
+
+class _ReqTool(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/tool'
+
+    @end_point
+    def check_agreement(self):
+        self.params = {}
+
+    @end_point
+    def signup(self):
+        self.params = {'carrier': 'OnePlus', 'agreement_ver': 1002, 'policy_ver': 2001}
+
+
+class _ReqAccount(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/account'
+
+    @end_point
+    def publish_transition_code(self, pwd: str):
+        self.params = {'password': PCRSecret.md5(pwd)}
 
 
 class _ReqPresent(_Req):
@@ -353,7 +412,7 @@ class _ReqLoad(_Req):
 
     @end_point
     def index(self):
-        self.params = {'carrier': 'blackshark'}
+        self.params = {'carrier': 'OnePlus'}
 
 
 class _ReqTutorial(_Req):
