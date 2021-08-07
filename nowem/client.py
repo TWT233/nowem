@@ -93,6 +93,13 @@ class PCRClient:
         self.game_data = await self.call.load.index().exec()
         self.token = ''.join(random.choices(string.digits, k=16))
 
+    async def pass_tutorial(self):
+        # tutorial
+        steps = [1, 2, 3, 4, 5, 6, 7, 20, 30, 40, 50, 60, 100]
+        for i in steps:
+            await self.call.tutorial.update_step(i, 0).exec(1)
+            log.info(f'tutorial step: {i}')
+
     async def donate_equipment(self):
         clan_id = (await self.call.clan.info().exec())['clan']['detail']['clan_id']
         chats = await self.call.clan.chat_info_list(clan_id).exec()
