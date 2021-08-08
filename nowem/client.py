@@ -215,6 +215,21 @@ class _ReqBase(_Req):
     def tool(self):
         return _ReqTool(self)
 
+    @property
+    def chara_fortune(self):
+        return _ReqCharaFortune(self)
+
+
+class _ReqCharaFortune(_Req):
+    def __init__(self, r: _Req):
+        super().__init__()
+        self.client = r.client
+        self.api = r.api + '/chara_fortune'
+
+    @end_point
+    def draw(self, fortune_id: int, unit_id: int):  # anniversary
+        self.params = {'fortune_id': fortune_id, 'unit_id': unit_id}
+
 
 class _ReqTool(_Req):
     def __init__(self, r: _Req):
