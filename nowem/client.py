@@ -273,6 +273,24 @@ class _ReqPresent(_Req):
 
 
 class _ReqStory(_Req):
+    """
+    check: enter the scene
+    start: finish reading
+
+    makeup of the story_id:
+    e.g. 2001000:  2 | 0 | 01|000
+                   a | b | c | d
+        a: type
+            1: chara
+            2: mainline
+            3: guild
+            4: extra
+            9: special event(such as kaiser_battle or anniversary)
+        b: episode(only available in mainline story, a==2)
+        c: chapter(when a!=2, usually used with b)
+        d: story
+    """
+
     def __init__(self, r: _Req):
         super().__init__()
         self.client = r.client
