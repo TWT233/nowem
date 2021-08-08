@@ -286,6 +286,10 @@ class _ReqStory(_Req):
     def start(self, story_id: int):
         self.params = {'story_id': story_id}
 
+    @end_point
+    def force_release(self, story_group_id: int):
+        self.params = {'story_group_id': story_group_id}
+
 
 class _ReqEvent(_Req):
     def __init__(self, r: _Req):
