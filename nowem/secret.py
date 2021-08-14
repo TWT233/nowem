@@ -22,7 +22,8 @@ _DEFAULT_HEADERS = {
     # transport
     'Expect': '100-continue',
     # game related headers
-    'APP-VER': '2.8.0',
+    # reminder: APP-VER can be explicitly set in __init__()
+    'APP-VER': '2.8.1',
     'BATTLE-LOGIC-VERSION': '4',
     'BUNDLE-VER': '',
     # device related headers
@@ -49,12 +50,14 @@ class PCRSecret:
     random_key = ''
     viewer_key = ''
 
-    def __init__(self, udid: str, short_udid: str, viewer_id: str):
+    def __init__(self, udid: str, short_udid: str, viewer_id: str, version: str = ''):
         self.udid = udid
         self.short_udid = short_udid
         self.viewer_id = viewer_id
 
         self.headers = _DEFAULT_HEADERS.copy()
+        if version:
+            self.headers['APP-VER'] = version
         self.headers['SID'] = self.md5(self.viewer_id + self.udid)
 
     @staticmethod

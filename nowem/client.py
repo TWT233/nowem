@@ -28,6 +28,7 @@ class PCRClient:
                  short_udid: str = '',
                  viewer_id: str = '',
                  server_id: int = 0,
+                 version: str = '',
                  proxy: dict = None):
         # check arguments
         if playerprefs:
@@ -46,7 +47,7 @@ class PCRClient:
         log.debug(f'cert setup: server_id = {server_id}, viewer_id = {viewer_id}, short_udid = {short_udid}')
         log.debug(f'udid = {udid}')
 
-        self.sec = PCRSecret(udid, short_udid, viewer_id)
+        self.sec = PCRSecret(udid, short_udid, viewer_id, version)
         self.server_id = server_id
         self.proxy = proxy or {}
 
@@ -56,10 +57,10 @@ class PCRClient:
 
         self.api_root = _API_ROOT[server_id - 1]
 
-    async def register(self, udid=str(uuid.uuid1())):
+    async def register(self, udid=str(uuid.uuid1()), version: str = ''):
         log.warning(f'registering now, udid={udid}')
 
-        self.sec = PCRSecret(udid, '0', '0')
+        self.sec = PCRSecret(udid, '0', '0', version)
         await self.call.tool.check_agreement().exec()
 
         gh = {'Upgrade-Insecure-Requests': '1',
@@ -74,7 +75,7 @@ class PCRClient:
 
         r = (await self.call.tool.signup().exec(no_headers=False))['data_headers']
 
-        self.sec = PCRSecret(r['udid'], r['short_udid'], r['viewer_id'])
+        self.sec = PCRSecret(r['udid'], r['short_udid'], r['viewer_id'], version)
         log.info(f"{r['viewer_id']} {r['short_udid']} {r['udid']}")
 
     async def req(self, api: str, params: dict, no_headers=True):
