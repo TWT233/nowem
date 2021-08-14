@@ -5,7 +5,7 @@ from nowem import PCRClient
 
 
 async def main():
-    c = PCRClient(playerprefs='../data/t1-reader.xml', proxy={})
+    c = PCRClient(playerprefs='../data/t1-reader.xml', proxy={}, version='2.8.1')
     print(f'udid_iv: {c.sec._udid_iv}')
 
     while True:

@@ -4,7 +4,7 @@ from nowem import PCRClient, PCRAPIException
 
 
 async def main():
-    c = PCRClient(playerprefs='../data/t1-reader.xml')
+    c = PCRClient(playerprefs='../data/t1-reader.xml', version='2.8.1')
     print(c.sec.viewer_id)
     await c.login()
 
