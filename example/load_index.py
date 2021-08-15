@@ -5,11 +5,11 @@ from nowem import PCRClient
 
 
 async def main():
-    c = PCRClient(playerprefs='../data/t1-reader.xml', proxy={"http": "localhost:7892", "https": "localhost:7892"},
-                  version='2.8.1')
-    await c.call.check.check_agreement().exec()
-    await c.call.check.game_start().exec()
-    json.dump(await c.call.load.index().exec(no_headers=False), open('../data/index.json', 'w', encoding='utf-8'),
+    ppf = 'tw.sonet.princessconnect.v2.playerprefs'
+    c = PCRClient(playerprefs=f'../data/{ppf}.xml', version='2.8.1')
+    await c.call.check.check_agreement()
+    await c.call.check.game_start()
+    json.dump(await c.call.load.index(no_headers=False), open('../data/index.json', 'w', encoding='utf-8'),
               ensure_ascii=False)
 
 
