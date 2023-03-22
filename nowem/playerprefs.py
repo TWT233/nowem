@@ -1,3 +1,5 @@
+import plistlib
+
 from urllib.parse import unquote
 from re import finditer
 from base64 import b64decode
@@ -40,5 +42,29 @@ def dec_xml(file: str) -> dict:
             val = str(unpack('i', val)[0])
 
         res[key] = val
+
+    return res
+
+
+def dec_plist_xml(file: str) -> dict:
+    """in Apple devices, playerprefs is stored as plist
+    for PlayCover over Mac, it is located at
+    ~/Library/Containers/tw.sonet.princessconnect/Data/Library/Preferences/tw.sonet.princessconnect.plist"""
+    res = {}
+
+    with open(file, 'rb') as f:
+        pl: dict = plistlib.load(f)
+        for k, v in pl.items():
+            try:
+                key = _dec_key(k).decode()
+                val = _dec_val(key, v)
+            except Exception:
+                ...
+
+            if key == 'UDID':
+                val = ''.join([chr(val[4 * i + 6] - 10) for i in range(36)])
+            elif len(val) == 4:
+                val = str(unpack('i', val)[0])
+            res[key] = val
 
     return res
