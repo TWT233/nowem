@@ -68,6 +68,10 @@ class ReqDispatcher(_Req):
         return Clan(self)
 
     @property
+    def clan_battle(self):
+        return ClanBattle(self)
+
+    @property
     def profile(self):
         return Profile(self)
 
@@ -352,6 +356,17 @@ class Clan(_Req):
             'count': count,
             'wait_interval': wait_interval,
             'update_message_ids': [],
+        }
+
+
+@route_only
+class ClanBattle(_Req):
+    @end_point
+    def top(self, clan_id: int, is_first: int, current_clan_battle_coin: int):
+        self.params = {
+            'clan_id': clan_id,
+            'is_first': is_first,
+            'current_clan_battle_coin': current_clan_battle_coin,
         }
 
 
