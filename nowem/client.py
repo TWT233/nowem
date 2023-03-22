@@ -21,24 +21,29 @@ log = logging.getLogger(__name__)
 class PCRClient:
 
     def __init__(self,
+                 version,
                  *,
                  playerprefs: str = '',
+                 pp_xml: dict = {},
                  udid: str = '',
                  short_udid: str = '',
                  viewer_id: str = '',
                  server_id: int = 0,
-                 version: str = '',
                  proxy: dict = None):
         # check arguments
         if playerprefs:
             pp_xml = dec_xml(playerprefs)
-            udid = udid or pp_xml['UDID']
-            short_udid = short_udid or pp_xml['SHORT_UDID']
-            viewer_id = viewer_id or pp_xml['VIEWER_ID']
-            server_id = server_id or int(pp_xml['TW_SERVER_ID'])
-        else:
-            if not udid or not short_udid or not viewer_id:
-                log.warning('missing pp and args')
+
+        udid = udid or pp_xml['UDID']
+        short_udid = short_udid or pp_xml['SHORT_UDID']
+        viewer_id = viewer_id or pp_xml['VIEWER_ID']
+        server_id = server_id or int(pp_xml['TW_SERVER_ID'])
+
+        if not udid or not short_udid or not viewer_id:
+            raise ValueError(f'missing arguments: udid={udid}, short_udid={short_udid}, viewer_id={viewer_id}')
+
+        if not version:
+            raise ValueError(f'')
 
         if server_id > 4 or server_id < 1:
             raise ValueError('unacceptable server id, accept: (0,4]')
