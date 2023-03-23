@@ -5,7 +5,7 @@ from nowem import PCRClient, PCRAPIException
 
 async def main():
     ppf = 'tw.sonet.princessconnect.v2.playerprefs'
-    c = PCRClient(playerprefs=f'../data/{ppf}.xml', version='2.8.1')
+    c = PCRClient('3.7.0', playerprefs=f'../data/{ppf}.xml')
     print(c.sec.viewer_id)
     await c.login()
 
