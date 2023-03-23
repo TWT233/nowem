@@ -52,6 +52,10 @@ class ReqDispatcher(_Req):
         self.client = c
 
     @property
+    def daily_task(self):
+        return DailyTask(self)
+
+    @property
     def check(self):
         return Check(self)
 
@@ -126,6 +130,20 @@ class ReqDispatcher(_Req):
     @property
     def chara_fortune(self):
         return CharaFortune(self)
+
+
+@route_only
+class DailyTask(_Req):
+    @end_point
+    def top(self, setting_alchemy_count=1, is_check_by_term_normal_gacha=0):
+        """{
+        "setting_alchemy_count": 1,
+        "is_check_by_term_normal_gacha": 0,
+        }"""
+        self.params = {
+            'settings_alchemy_count': setting_alchemy_count,
+            'is_check_by_term_normal_gacha': is_check_by_term_normal_gacha,
+        }
 
 
 @route_only
