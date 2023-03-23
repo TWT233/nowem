@@ -381,10 +381,47 @@ class Clan(_Req):
 class ClanBattle(_Req):
     @end_point
     def top(self, clan_id: int, is_first: int, current_clan_battle_coin: int):
+        """{
+        "clan_id": 12345,
+        "is_first": 1,
+        "current_clan_battle_coin": 11705, // data.item_list.where(lambda x:x['type']==2 and x['id']==90006)['stock']
+        }"""
         self.params = {
             'clan_id': clan_id,
             'is_first': is_first,
             'current_clan_battle_coin': current_clan_battle_coin,
+        }
+
+    @end_point
+    def battle_log_list(self,
+                        cland_battle_id: int,
+                        order_num: int,
+                        phases: list[int],
+                        report_types: list[int],
+                        hide_same_units: int,
+                        favorite_ids: list[int],
+                        sort_type: int,
+                        page: int,
+                        ):
+        """{
+        "clan_battle_id": 1055,
+        "order_num": 0,
+        "phases": [5],
+        "report_types": [1, 2, 3, 4],
+        "hide_same_units": 0,
+        "favorite_ids": [],
+        "sort_type": 1,
+        "page": 1,
+        }"""
+        self.params = {
+            'cland_battle_id': cland_battle_id,
+            'order_num': order_num,
+            'phases': phases,
+            'report_types': report_types,
+            'hide_same_units': hide_same_units,
+            'favorite_ids': favorite_ids,
+            'sort_type': sort_type,
+            'page': page,
         }
 
 
