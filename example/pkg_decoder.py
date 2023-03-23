@@ -21,7 +21,7 @@ async def main():
     c = PCRClient('3.7.0', pp_xml=playerprefs.dec_plist_xml('../data/tw.sonet.princessconnect.plist'))
 
     while True:
-        raw = input('input(hex)>>>')
+        raw = input('input(hex/b64)>>>')
         dec, key = c.sec.unpack(read_raw(raw))
         print(f'data: {json.dumps(dec)}')
         print(f'key: {key}')
